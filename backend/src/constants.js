@@ -1,1 +1,1 @@
-export const DB_NAME = "spmg";
+export const DB_NAME = "spms";
