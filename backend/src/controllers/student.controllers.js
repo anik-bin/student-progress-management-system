@@ -1,9 +1,9 @@
 import {Student} from "../models/student.models.js";
-import { fetchCodeforcesData } from "../services/codeForces.service.js";
+import { fetchCodeforcesData } from "../services/codeforces.service.js";
 import {ApiError} from "../utils/apiError.js";
 import {ApiResponse} from "../utils/apiResponse.js";
 import {AsyncHandler} from "../utils/asyncHandler.js";
-import { fetchDetailedProfileData } from "../services/codeForces.service.js";
+import { fetchDetailedProfileData } from "../services/codeforces.service.js";
 
 // create a student
 
@@ -146,11 +146,79 @@ const deleteStudent = AsyncHandler(async (req, res)=>{
 
 const getStudentProfile = AsyncHandler(async (req, res) => {
     const { id } = req.params;
+    const period = parseInt(req.query.period, 10); // Get period from query, e.g., ?period=30
+
     const student = await Student.findById(id);
     if (!student) throw new ApiError(404, "Student not found");
 
-    const profileData = await fetchDetailedProfileData(student.codeForcesHandle);
-    return res.status(200).json(new ApiResponse(200, profileData));
+    // Fetch the raw, complete data once
+    const rawData = await fetchDetailedProfileData(student.codeForcesHandle);
+
+    const now = new Date();
+    const filterDate = new Date();
+    if (period) {
+        filterDate.setDate(now.getDate() - period);
+    }
+
+    // --- FILTER AND PROCESS DATA ---
+
+    // 1. Filter Contest History
+    const filteredContestHistory = period
+        ? rawData.contestHistory.filter(c => new Date(c.ratingUpdateTimeSeconds * 1000) > filterDate)
+        : rawData.contestHistory;
+
+    // 2. Filter Submissions and calculate stats
+    const solvedProblems = new Map();
+    const ratingBuckets = {};
+    const submissionHeatmapData = [];
+    let totalRatingSum = 0;
+
+    rawData.submissionHistory.forEach(sub => {
+        const submissionDate = new Date(sub.creationTimeSeconds * 1000);
+        const problemId = `<span class="math-inline">\{sub\.problem\.contestId\}\-</span>{sub.problem.index}`;
+
+        // Only consider submissions within the filtered period for stats
+        if (!period || submissionDate > filterDate) {
+            if (sub.verdict === 'OK' && !solvedProblems.has(problemId)) {
+                solvedProblems.set(problemId, sub.problem);
+                const rating = sub.problem.rating || 0;
+                totalRatingSum += rating;
+                const bucket = Math.floor(rating / 200) * 200;
+                ratingBuckets[bucket] = (ratingBuckets[bucket] || 0) + 1;
+            }
+        }
+        // For heatmap, we usually consider the last year regardless of filter
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(now.getFullYear() - 1);
+        if(submissionDate > oneYearAgo) {
+             submissionHeatmapData.push({
+                date: submissionDate.toISOString().split('T')[0],
+                count: 1 // Simple count, can be aggregated later
+            });
+        }
+    });
+
+    const hardestProblem = [...solvedProblems.values()].reduce((max, p) => (p.rating > max.rating ? p : max), {rating: 0, name: 'N/A'});
+
+    const totalSolved = solvedProblems.size;
+    const averageRating = totalSolved > 0 ? Math.round(totalRatingSum / totalSolved) : 0;
+    const averageProblemsPerDay = period > 0 ? (totalSolved / period).toFixed(2) : 0;
+
+    // --- FINAL PROCESSED DATA ---
+    const processedProfile = {
+        details: rawData.details,
+        contestHistory: filteredContestHistory.reverse(),
+        problemStats: {
+            totalSolved,
+            hardestProblem: { name: hardestProblem.name, rating: hardestProblem.rating },
+            averageRating,
+            averageProblemsPerDay,
+            ratingBuckets,
+        },
+        heatmapData: submissionHeatmapData
+    };
+
+    return res.status(200).json(new ApiResponse(200, processedProfile));
 });
 
 export {

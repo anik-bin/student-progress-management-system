@@ -25,6 +25,7 @@ export const deleteStudent = (id) => {
     return apiClient.delete(`/students/${id}`);
 }
 
-export const getStudentProfileData = (id) => {
-    return apiClient.get(`/students/${id}/profile`);
+export const getStudentProfileData = (id, period) => {
+    const params = period ? { period } : {};
+    return apiClient.get(`/students/${id}/profile`, { params });
 };
