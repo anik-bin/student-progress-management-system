@@ -4,7 +4,7 @@ A full-stack MERN application designed to manage, track, and analyze the progres
 
 ## **📽️ Project Demonstration**
 
-\[**INSERT YOUR DEMONSTRATION VIDEO LINK HERE**\]
+[Link to the video](https://youtu.be/VweLdaZS6Vc)
 
 ## **✨ Features**
 
