@@ -38,3 +38,48 @@ export const fetchCodeforcesData = async (handle) => {
         throw error;
     }
 };
+
+export const fetchDetailedProfileData = async (handle) => {
+    try {
+        const [userInfoResponse, userRatingResponse, userStatusResponse] = await Promise.all([
+            fetch(`https://codeforces.com/api/user.info?handles=${handle}`),
+            fetch(`https://codeforces.com/api/user.rating?handle=${handle}`),
+            fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`)
+        ]);
+
+        const userInfo = await userInfoResponse.json();
+        const userRating = await userRatingResponse.json();
+        const userStatus = await userStatusResponse.json();
+
+        if (userInfo.status !== 'OK' || userRating.status !== 'OK' || userStatus.status !== 'OK') {
+            throw new Error(`Codeforces API FAILED for handle: ${handle}.`);
+        }
+
+        // Process problem data
+        const solvedProblems = new Set();
+        let hardestProblem = { name: 'N/A', rating: 0 };
+        userStatus.result.forEach(sub => {
+            if (sub.verdict === 'OK') {
+                const problemId = `<span class="math-inline">\{sub\.problem\.contestId\}\-</span>{sub.problem.index}`;
+                if (!solvedProblems.has(problemId)) {
+                    solvedProblems.add(problemId);
+                    if (sub.problem.rating > hardestProblem.rating) {
+                        hardestProblem = { name: sub.problem.name, rating: sub.problem.rating };
+                    }
+                }
+            }
+        });
+
+        return {
+            details: userInfo.result[0],
+            contestHistory: userRating.result.reverse().slice(0, 20), // Last 20 contests
+            problemStats: {
+                totalSolved: solvedProblems.size,
+                hardestProblem: hardestProblem,
+            }
+        };
+    } catch (error) {
+        console.error(`Error in fetchDetailedProfileData for handle ${handle}:`, error.message);
+        throw error;
+    }
+};

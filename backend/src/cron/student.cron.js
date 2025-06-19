@@ -76,10 +76,10 @@ const syncAllStudentsData = async () => {
 export const startStudentSyncCron = () => {
     // This schedule runs the job at 2:00 AM every day.
     // Syntax: 'minute hour day-of-month month day-of-week'
-    // const schedule = '0 2 * * *'; 
+    const schedule = '0 2 * * *'; 
 
     // FOR TESTING: Use this schedule to run the job every minute
-    const schedule = '* * * * *'; 
+    // const schedule = '* * * * *'; 
     
     cron.schedule(schedule, () => {
         syncAllStudentsData();

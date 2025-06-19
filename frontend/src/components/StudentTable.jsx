@@ -10,6 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Trash2, Edit, Eye } from 'lucide-react';
 import EditStudentDialog from "./EditStudentDialog";
+import { Link } from "react-router-dom";
 
 
 const StudentTable = ({ students, handleDelete, onStudentUpdated }) => {
@@ -40,9 +41,11 @@ const StudentTable = ({ students, handleDelete, onStudentUpdated }) => {
                 </TableCell>
                 <TableCell className="text-center">{student.reminderCount}</TableCell>
                 <TableCell className="flex justify-center items-center space-x-2">
-                  <Button variant="outline" size="icon">
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <Link to={`/student/${student._id}`}>
+                    <Button variant="outline" size="icon">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <EditStudentDialog student={student} onStudentUpdated={onStudentUpdated}>
                     <Button variant="outline" size="icon">
                       <Edit className="h-4 w-4" />

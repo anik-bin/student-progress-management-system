@@ -3,6 +3,7 @@ import { fetchCodeforcesData } from "../services/codeForces.service.js";
 import {ApiError} from "../utils/apiError.js";
 import {ApiResponse} from "../utils/apiResponse.js";
 import {AsyncHandler} from "../utils/asyncHandler.js";
+import { fetchDetailedProfileData } from "../services/codeForces.service.js";
 
 // create a student
 
@@ -141,6 +142,17 @@ const deleteStudent = AsyncHandler(async (req, res)=>{
     );
 });
 
+// get student profile
+
+const getStudentProfile = AsyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const student = await Student.findById(id);
+    if (!student) throw new ApiError(404, "Student not found");
+
+    const profileData = await fetchDetailedProfileData(student.codeForcesHandle);
+    return res.status(200).json(new ApiResponse(200, profileData));
+});
+
 export {
     createStudent,
     getAllStudents,
@@ -148,5 +160,6 @@ export {
     updateStudent,
     deleteStudent,
     syncStudentData,
+    getStudentProfile,
 }
 
