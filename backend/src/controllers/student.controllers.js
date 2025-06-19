@@ -1,4 +1,5 @@
 import {Student} from "../models/student.models.js";
+import { fetchCodeforcesData } from "../services/codeForces.service.js";
 import {ApiError} from "../utils/apiError.js";
 import {ApiResponse} from "../utils/apiResponse.js";
 import {AsyncHandler} from "../utils/asyncHandler.js";
@@ -18,11 +19,21 @@ const createStudent = AsyncHandler(async (req, res)=>{
         throw new ApiError(409, "Student with this email or Codeforces handle already exists");
     }
 
+    let cfData;
+    try {
+        cfData = await fetchCodeforcesData(codeForcesHandle);
+    } catch (error) {
+        throw new ApiError(400, `Failed to verify Codeforces handle: ${codeForcesHandle}. Please check for typos.`);
+    }
+
     const student = await Student.create({
         name,
         email,
         phoneNumber,
         codeForcesHandle,
+        currentRating: cfData.currentRating,
+        maxRating: cfData.maxRating,
+        lastUpdated: cfData.lastUpdated,
     });
 
     if (!student) {
@@ -33,6 +44,32 @@ const createStudent = AsyncHandler(async (req, res)=>{
         new ApiResponse(201, student, "Student created successfully")
     );
 });
+
+const syncStudentData = AsyncHandler(async (req, res) => {
+    const {id} = req.params;
+    const student = await Student.findById(id);
+
+    if (!student) {
+        throw new ApiError(404, "Student not found");
+    }
+
+    let cfData;
+    try {
+        cfData = await fetchCodeforcesData(student.codeForcesHandle);
+    } catch (error) {
+        throw new ApiError(500, `Could not sync data for handle: ${student.codeForcesHandle}.`);
+    }
+
+    student.currentRating = cfData.currentRating;
+    student.maxRating = cfData.maxRating;
+    student.lastUpdated = cfData.lastUpdated;
+
+    const updatedStudent = await student.save({ validateBeforeSave: false });
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedStudent, "Student data synced successfully.")
+    );
+})
 
 // get all students
 
@@ -61,18 +98,34 @@ const getStudentById = AsyncHandler(async (req, res)=>{
 // update student
 
 const updateStudent = AsyncHandler(async (req, res) => {
-    const student = await Student.findByIdAndUpdate(
-        req.params.id,
-        {$set: req.body},
-        {new: true}
-    );
+    const { id } = req.params;
+    const student = await Student.findById(id);
 
-    if(!student) {
-        throw new ApiError(404, "Student not found")
+    if (!student) {
+        throw new ApiError(404, "Student not found");
     }
 
+    const oldHandle = student.codeForcesHandle;
+    const newHandle = req.body.codeForcesHandle;
+
+    Object.assign(student, req.body);
+
+    // If the Codeforces handle has changed, we must re-fetch the data
+    if (newHandle && oldHandle !== newHandle) {
+        try {
+            const cfData = await fetchCodeforcesData(newHandle);
+            student.currentRating = cfData.currentRating;
+            student.maxRating = cfData.maxRating;
+            student.lastUpdated = cfData.lastUpdated;
+        } catch (error) {
+            throw new ApiError(400, `Failed to sync data for new handle: ${newHandle}. Please check the handle and try again.`);
+        }
+    }
+
+    const updatedStudent = await student.save({ validateBeforeSave: false });
+
     return res.status(200).json(
-        new ApiResponse(200, student, "Student updated successfully")
+        new ApiResponse(200, updatedStudent, "Student updated successfully.")
     );
 });
 
@@ -94,5 +147,6 @@ export {
     getStudentById,
     updateStudent,
     deleteStudent,
+    syncStudentData,
 }
 
