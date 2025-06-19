@@ -24,6 +24,7 @@ const StudentTable = ({ students, handleDelete, onStudentUpdated }) => {
             <TableHead className="text-center font-bold">Rating</TableHead>
             <TableHead className="text-center font-bold">Last Updated</TableHead>
             <TableHead className="text-center font-bold">Actions</TableHead>
+            <TableHead className="text-center font-bold">Reminders</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -37,6 +38,7 @@ const StudentTable = ({ students, handleDelete, onStudentUpdated }) => {
                 <TableCell className="text-center">
                   {student.lastUpdated ? new Date(student.lastUpdated).toLocaleDateString() : 'N/A'}
                 </TableCell>
+                <TableCell className="text-center">{student.reminderCount}</TableCell>
                 <TableCell className="flex justify-center items-center space-x-2">
                   <Button variant="outline" size="icon">
                     <Eye className="h-4 w-4" />

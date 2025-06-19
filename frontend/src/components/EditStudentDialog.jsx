@@ -13,6 +13,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { updateStudent } from "../services/student.services";
 import toast from "react-hot-toast";
+import { Switch } from "./ui/switch";
 
 const EditStudentDialog = ({ student, onStudentUpdated, children }) => {
     const [formData, setFormData] = useState({ ...student });
@@ -73,6 +74,15 @@ const EditStudentDialog = ({ student, onStudentUpdated, children }) => {
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="codeForcesHandle" className="text-right">CF Handle</Label>
                             <Input id="codeForcesHandle" value={formData.codeForcesHandle} onChange={handleChange} className="col-span-3" required />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="remindersEnabled" className="text-right">Email Reminders</Label>
+                            <Switch
+                                id="remindersEnabled"
+                                checked={formData.remindersEnabled}
+                                onCheckedChange={(checked) => setFormData(prevState => ({ ...prevState, remindersEnabled: checked }))}
+                            />
                         </div>
                     </div>
                     <DialogFooter>

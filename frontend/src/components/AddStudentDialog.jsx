@@ -21,7 +21,8 @@ const AddStudentDialog = ({ onStudentAdded }) => {
         name: "",
         email: "",
         phoneNumber: "",
-        codeForcesHandle: ""
+        codeForcesHandle: "",
+        remindersEnabled: true,
     });
 
     const [open, setOpen] = useState(false);
