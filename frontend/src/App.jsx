@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import StudentTable from "./components/StudentTable";
 import { getAllStudents, deleteStudent } from "./services/student.services";
-import toast, {Toaster} from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import AddStudentDialog from "./components/AddStudentDialog";
+import { exportToCsv } from "./services/export.services";
+import { Button } from "./components/ui/button";
+import { CirclePlus, Download } from 'lucide-react';
 
 function App() {
   const [students, setStudents] = useState([]);
@@ -15,31 +18,37 @@ function App() {
       const response = await getAllStudents();
       setStudents(response.data.data);
     } catch (error) {
-        console.error("Failed to fetch students: ", error);
-        toast.error("Failed to fetch students");
+      console.error("Failed to fetch students: ", error);
+      toast.error("Failed to fetch students");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchStudents();
   }, [])
 
   const handleDelete = async (id) => {
-    if(window.confirm("Are you sure you want to delete this student?")) {
+    if (window.confirm("Are you sure you want to delete this student?")) {
       const toastId = toast.loading("Deleting student....");
 
       try {
         await deleteStudent(id);
-        toast.success("Student deleted successfully", {id: toastId});
+        toast.success("Student deleted successfully", { id: toastId });
         fetchStudents();
       } catch (error) {
         console.error("Failed to delete student: ", error);
-        toast.error("Failed to delete student", {id: toastId});
+        toast.error("Failed to delete student", { id: toastId });
       }
     }
   }
+
+  const handleExport = () => {
+    exportToCsv(students, `student_data_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-right" />
@@ -49,7 +58,12 @@ function App() {
             <h1 className="text-3xl font-bold text-gray-800">Student Dashboard</h1>
             <p className="text-gray-500 mt-1">Manage and track student progress.</p>
           </div>
-          <AddStudentDialog onStudentAdded={fetchStudents} />
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" /> Download CSV
+            </Button>
+            <AddStudentDialog onStudentAdded={fetchStudents} />
+          </div>
         </div>
 
         {loading ? (
